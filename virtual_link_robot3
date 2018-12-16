@@ -27,104 +27,112 @@ import numpy as np
 
 class GotoPoint():
     def __init__(self):
-        rospy.init_node('virtual_link_robot1', anonymous=False)
+        rospy.init_node('virtual_link_robot3', anonymous=False)
         rospy.on_shutdown(self.shutdown)
-        self.cmd_vel = rospy.Publisher('robot1/cmd_vel', Twist, queue_size=5)       
+        self.cmd_vel = rospy.Publisher('robot3/cmd_vel', Twist, queue_size=5)       
         
         self.r = rospy.Rate(10)
         self.tf_listener_robot1 = tf.TransformListener()
-	self.tf_listener_robot2 = tf.TransformListener()
+	self.tf_listener_robot3 = tf.TransformListener()
         self.odom_frame_robot1 = 'robot1/odom'        
         self.base_frame_robot1 = 'robot1/base_footprint'
-        self.odom_frame_robot2 = 'robot2/odom'
-        self.base_frame_robot2 = 'robot2/base_footprint'
+        self.odom_frame_robot3 = 'robot3/odom'
+        self.base_frame_robot3 = 'robot3/base_footprint'
 
         #默认已有
         self.tf_listener_robot1.waitForTransform(self.odom_frame_robot1, 'robot1/base_footprint', rospy.Time(), rospy.Duration(1.0))
-        self.tf_listener_robot2.waitForTransform(self.odom_frame_robot2, 'robot2/base_footprint', rospy.Time(), rospy.Duration(1.0))
-	#判断2车是否就位
-        
-	(position_another, rotation_another) = self.get_odom_robot2() 
-        distance_another = sqrt(pow((1 - position_another.x), 2) + pow((0 - position_another.y), 2))     
+        self.tf_listener_robot3.waitForTransform(self.odom_frame_robot3, 'robot3/base_footprint', rospy.Time(), rospy.Duration(1.0))
+	#判断1车是否就位
+        '''
+	(position_another, rotation_another) = self.get_odom_robot1() 
+        distance_another = sqrt(pow((0 - position_another.x), 2) + pow((0 - position_another.y), 2))     
         while distance_another > 0.05:
-            (position_another, rotation_another) = self.get_odom_robot2() 
-            distance_another = sqrt(pow((1 - position_another.x), 2) + pow((0 - position_another.y), 2))	
+            (position_another, rotation_another) = self.get_odom_robot1() 
+            distance_another = sqrt(pow((0 - position_another.x), 2) + pow((0 - position_another.y), 2))#判断2车是否就位，循环中不断获取2车位置以及2车到初始点的距离，直到2车到达初始点跳出循环。
+         '''   	
+        #3车去往初始点   
+        print('3车去往初始点')
+	(position_another, rotation_another) = self.get_odom_robot1()     
+	while True: 
+	    self.gotoPoint((position_another.x - 0.1,position_another.y - 0.1,rotation_another))   #3车初始点
+	    (position_another, rotation_another) = self.get_odom_robot1()
+	    rospy.sleep(0.01)
         
-        #1车去往初始点        
-	self.gotoPoint((0,0,pi/4))
-	print('判断2车是否就位')
-        (position_another, rotation_another) = self.get_odom_robot2() 
-        distance_another = sqrt(pow((1 - position_another.x), 2) + pow((0 - position_another.y), 2))      
-        #判断2车是否就位
-        
-        while distance_another > 0.05 or (not(rotation_another>pi*3/4-0.2 and rotation_another<pi*3/4+0.2)):
-            (position_another, rotation_another) = self.get_odom_robot2() 
-            distance_another = sqrt(pow((1 - position_another.x), 2) + pow((0 - position_another.y), 2))
-	rospy.sleep(2)
-        
+        '''
+        print('判断1车是否就位')
+        (position_another, rotation_another) = self.get_odom_robot1() 
+        distance_another = sqrt(pow((0 - position_another.x), 2) + pow((0 - position_another.y), 2))      
+        #判断1车位置转向是否就位
+        while distance_another > 0.05 or (not(rotation_another>pi/4-0.2 and rotation_another<pi/4+0.2)):
+            (position_another, rotation_another) = self.get_odom_robot1() 
+            distance_another = sqrt(pow((0 - position_another.x), 2) + pow((0 - position_another.y), 2))
+        '''
+	#rospy.sleep(2)
 	print('开始')
-        #开始 
-	       
-        self.gotoPoint((0.5,0.5,pi/2))
-        #启用跟随
-        self.gotoPoint((0.5,3.5,pi*3/4),True)
-        self.gotoPoint((0,4,-pi/2))           
-        self.gotoPoint((0,0,pi/4))
+        #开始       
+        #self.gotoPoint((0.5,0.5,pi/2))
+        #启用跟随？？？
+        #self.gotoPoint((position_another.x - 0.1,position_another.y - 0.1,rotation_another))
+        #self.gotoPoint((0,3,-pi/2))           
+        #self.gotoPoint((0,0,pi/4))
 	print('结束')
         #结束
         rospy.loginfo("Stopping the robot...")
 	self.shutdown()
+	
 
     def gotoPoint(self,goal_position,isfollow = False):
+        print('ok1')
 	position = Point()	
 	move_cmd = Twist()
-        (position, rotation) = self.get_odom_robot1()
-	
+        (position, rotation) = self.get_odom_robot3()
+	(position_another, rotation_another) = self.get_odom_robot1()
         last_rotation = 0
         linear_speed = 1
 	max_linerspeed = 0.15
         angular_speed = 1
         (goal_x, goal_y, goal_z) = goal_position
+        print('ok2')
         goal_distance = sqrt(pow(goal_x - position.x, 2) + pow(goal_y - position.y, 2))
         distance = goal_distance
+        print('distance=%f' %(distance))
+        print('ok3')
         while distance > 0.05:
 	    print('distance=%f' %(distance))
-            (position, rotation) = self.get_odom_robot1()
-            (position_another, rotation_another) = self.get_odom_robot2()    
+            print('ok4')
+            (position, rotation) = self.get_odom_robot3()
+            (position_another, rotation_another) = self.get_odom_robot1()
+            #(goal_x, goal_y, goal_z) = (position_another.x - 0.1,position_another.y - 0.1,0)  
                         
             x_start = position.x
             y_start = position.y
-
-            distance_another = sqrt(pow((goal_x - position_another.x), 2) + pow((goal_y - position_another.y), 2))
+            
             distance = sqrt(pow((goal_x - x_start), 2) + pow((goal_y - y_start), 2))
-            distance_between = sqrt(pow((position_another.x - x_start), 2) + pow((position_another.y - y_start), 2))
+            '''
+            #distance_another = sqrt(pow((goal_x - position_another.x), 2) + pow((goal_y - position_another.y), 2))
             
-            if distance <= 0.25 and distance_another < 0.25 and distance > distance_another:
-                max_linerspeed = 0.13
-                self.cmd_vel.publish(Twist())
-                isfollow = False
-		print('wait robot2 pass')
-		rospy.sleep(0.01)
+            #distance_between = sqrt(pow((position_another.x - x_start), 2) + pow((position_another.y - y_start), 2))
+            #1个distance，distance是车到目标点的距离，这里的目标点是1车的实时位置减去一个安全距离。
+            #if distance <= 0.25 and distance_another < 0.25 and distance > distance_another:
+            #   self.cmd_vel.publish(Twist())
+	    #	print('wait robot2 pass')
+	    #	rospy.sleep(0.01) #进入if语句，如果满足条件进入if，程序停0.1s
+            #   continue        #back while
                 
-                continue
-		
-            if distance_another <= 0.05:
-                isfollow = False
-            if isfollow and distance_another<distance:
-                #goal_x = position_another.x
-		#max_linerspeed = 0.18
-                goal_y = position_another.y - 0.05 #zheli zhaozheng guanjian 
-                if goal_y - position.y>0.40:
-                    max_linerspeed = 0.18
-                else:
-                    max_linerspeed = 0.15
+
+            #if distance_another <= 0.05:
+            #    isfollow = False
+           #if isfollow and distance_another<distance:
+           #     goal_x = position.x
+	   #	 max_linerspeed = 0.18
+           #     goal_y = position.y - 0.10
                 
-		print('is following,distance=%f,distance_another=%f,distance_between=%f' %(distance,distance_another,distance_between))
-            else:
-		max_linerspeed = 0.14
-                (goal_x, goal_y, goal_z) = goal_position
-		move_cmd=Twist()
-            
+	   #	print('is following,distance=%f,distance_another=%f,distance_between=%f' %(distance,distance_another,distance_between))
+           #else:
+	   #	max_linerspeed = 0.15
+           #    (goal_x, goal_y, goal_z) =(position.x,position.y,rotation)
+	   #	move_cmd=Twist()
+            '''
             path_angle = atan2(goal_y - y_start, goal_x- x_start)
 	    '''
             if path_angle < -pi/4 or path_angle > pi/4:
@@ -140,7 +148,8 @@ class GotoPoint():
 
             move_cmd.angular.z = angular_speed * path_angle-rotation          
             move_cmd.linear.x = min(linear_speed * distance, max_linerspeed)	    
-	    print('rotation=%f' %(rotation))
+	    #print('rotation=%f' %(rotation))
+            print('ok5')
             if move_cmd.angular.z > 0:
                 move_cmd.angular.z = min(move_cmd.angular.z, 1.5)
             else:
@@ -148,28 +157,32 @@ class GotoPoint():
             last_rotation = rotation
             self.cmd_vel.publish(move_cmd)
             self.r.sleep()
-	(position, rotation) = self.get_odom_robot1()
+	
+        '''
+	(position, rotation) = self.get_odom_robot3()
         while abs(rotation - goal_z) > 0.10:
-	    (position, rotation) = self.get_odom_robot1()
+	    (position, rotation) = self.get_odom_robot3()
 	    print('rotation=%f' %(rotation))
+            print('ok6')
             if goal_z >= 0:
                 if rotation <= goal_z and rotation >= goal_z - pi:
                     move_cmd.linear.x = 0.00
-                    move_cmd.angular.z = 0.8
+                    move_cmd.angular.z = 0.5
                 else:
                     move_cmd.linear.x = 0.00
-                    move_cmd.angular.z = -0.8
+                    move_cmd.angular.z = -0.5
             else:
                 if rotation <= goal_z + pi and rotation > goal_z:
                     move_cmd.linear.x = 0.00
-                    move_cmd.angular.z = -0.8
+                    move_cmd.angular.z = -0.5
                 else:
                     move_cmd.linear.x = 0.00
-                    move_cmd.angular.z = 0.8
-            self.cmd_vel.publish(move_cmd)
+                    move_cmd.angular.z = 0.5
+            self.cmd_vel.publish(move_cmd)        
             self.r.sleep()
+	'''
 	self.cmd_vel.publish(Twist())
-
+        
     def get_odom_robot1(self):
         try:
             (trans, rot) = self.tf_listener_robot1.lookupTransform(self.odom_frame_robot1, self.base_frame_robot1, rospy.Time(0))
@@ -178,19 +191,18 @@ class GotoPoint():
         except (tf.Exception, tf.ConnectivityException, tf.LookupException):
             rospy.loginfo("TF Exception")
             return
-        
         return (Point(*trans), rotation[2])
 
-    def get_odom_robot2(self):
+    def get_odom_robot3(self):
         try:
-            (trans, rot) = self.tf_listener_robot2.lookupTransform(self.odom_frame_robot2, self.base_frame_robot2, rospy.Time(0))
+            (trans, rot) = self.tf_listener_robot3.lookupTransform(self.odom_frame_robot3, self.base_frame_robot3, rospy.Time(0))
             rotation = euler_from_quaternion(rot)
 
         except (tf.Exception, tf.ConnectivityException, tf.LookupException):
             rospy.loginfo("TF Exception")
             return
 	point=Point(*trans)
-	point.x=point.x+0.16
+	point.x=point.x-0.18
         return (point, rotation[2])
 
     def shutdown(self):
